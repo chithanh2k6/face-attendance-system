@@ -1,0 +1,9 @@
+opencv-python
+face_recognition
+face-recognition-models
+numpy
+pandas
+Pillow
+cmake
+dlib-bin
+setuptools==69.5.1
