@@ -18,13 +18,8 @@ from modules.database import (
     DATA_DIR,
 )
 
-# ──────────────────────────────────────────────
-# Cấu hình
-# ──────────────────────────────────────────────
-
 ENCODINGS_FILE = os.path.join(DATA_DIR, "encodings.pkl")
 NUM_PHOTOS     = 3  # Số ảnh chụp mỗi sinh viên
-
 
 # ──────────────────────────────────────────────
 # Quản lý file encodings.pkl
@@ -165,7 +160,6 @@ def capture_face(student_id, num_photos=NUM_PHOTOS):
 
         frame_count += 1
 
-        # Detect khuôn mặt ngầm để giảm lag
         if frame_count % DETECT_EVERY == 0:
             rgb_frame  = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             face_locs  = face_recognition.face_locations(rgb_frame, number_of_times_to_upsample=1, model="hog")
@@ -248,7 +242,6 @@ def register_student_cli():
     if not info:
         return False
 
-    # Giải nén 5 biến (có is_new_student)
     student_id, full_name, class_name, gender, is_new_student = info
 
     image_paths = capture_face(student_id)
