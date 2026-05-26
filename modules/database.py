@@ -5,14 +5,12 @@ BASE_DIR    = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR    = os.path.join(BASE_DIR, "data")
 DB_PATH     = os.path.join(DATA_DIR, "attendance.db")
 FACES_DIR   = os.path.join(DATA_DIR, "faces")
-REPORTS_DIR = os.path.join(BASE_DIR, "reports")
-
 
 def initialize_directories():
     """
     tạo các thư mục cần thiết  nếu chưa tồn tại.
     """
-    for d in [DATA_DIR, FACES_DIR, REPORTS_DIR]:
+    for d in [DATA_DIR, FACES_DIR]:
         os.makedirs(d, exist_ok=True)
 
 
@@ -21,7 +19,7 @@ def connect_db(db_path=DB_PATH):
     tự động tạo file DB nếu chưa tồn tại.
     """
     conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row  # Truy cập cột bằng tên: row["student_id"]
+    conn.row_factory = sqlite3.Row  
     return conn
 
 
@@ -85,14 +83,13 @@ def check_student_status(student_id, db_path=DB_PATH):
     conn.close()
 
     if row is None:
-        return False, False  # Không tồn tại
+        return False, False  
     return True, row["is_active"] == 1
 
 
 def add_student(student_id, full_name, class_name="", gender="", image_path="", db_path=DB_PATH):
     """
     Thêm sinh viên mới tinh vào DB.
-    Hàm tuân thủ nguyên tắc nhất quán dữ liệu, trả về kiểu Boolean thuần túy.
     Trả về: True nếu thêm mới thành công, False nếu trùng khóa UNIQUE.
     """
     try:
@@ -114,7 +111,7 @@ def add_student(student_id, full_name, class_name="", gender="", image_path="", 
 
 def reactivate_student_db(student_id, full_name, class_name="", gender="", db_path=DB_PATH):
     """
-    Hàm ép buộc khôi phục sinh viên bị xóa mềm và cập nhật thông tin mới.
+    Hàm ép buộc khôi phục sinh viên bị xóa và cập nhật thông tin mới.
     Được gọi sau khi người dùng bấm đồng ý khôi phục trên giao diện.
     """
     conn = connect_db(db_path)
@@ -133,7 +130,6 @@ def update_student(student_id, full_name, class_name="", gender="", db_path=DB_P
     """
     Cập nhật thông tin sinh viên (Họ tên, Lớp, Giới tính).
     Chỉ cho phép cập nhật khi sinh viên đang tồn tại và hoạt động (is_active = 1).
-    Trả về: True nếu cập nhật thành công, False nếu lỗi hoặc không tìm thấy.
     """
     exists, is_active = check_student_status(student_id, db_path)
 
@@ -234,10 +230,10 @@ def hard_delete_student(student_id, db_path=DB_PATH):
     conn.close()
 
 
-# def student_exists(student_id, db_path=DB_PATH):
-#     """Kiểm tra mssv đang hoạt đọng tồn tại trong DB chưa."""
-#     sv = get_student(student_id, include_deleted=False, db_path=db_path)
-#     return sv is not None
+def student_exists(student_id, db_path=DB_PATH):
+    """Kiểm tra mssv đang hoạt đọng tồn tại trong DB chưa."""
+    sv = get_student(student_id, include_deleted=False, db_path=db_path)
+    return sv is not None
 
 
 # ──────────────────────────────────────────────
