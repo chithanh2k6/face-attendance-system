@@ -19,7 +19,7 @@ from modules.database import (
 )
 
 ENCODINGS_FILE = os.path.join(DATA_DIR, "encodings.pkl")
-NUM_PHOTOS     = 3  # Số ảnh chụp mỗi sinh viên
+NUM_PHOTOS     = 3
 
 # ──────────────────────────────────────────────
 # Quản lý file encodings.pkl
@@ -49,7 +49,6 @@ def remove_encoding(student_id):
     """
     Xóa encoding của 1 SV khỏi file .pkl.
     Gọi khi xóa SV để SV đã xóa không bị nhận diện nữa.
-    Gọi bởi: UI khi xóa sinh viên (delete_student + remove_encoding)
     """
     all_encodings = load_encodings()
     if student_id in all_encodings:
@@ -61,7 +60,6 @@ def remove_encoding(student_id):
 # ──────────────────────────────────────────────
 # Hàm dọn rác cho delete
 # ──────────────────────────────────────────────
-
 def cleanup_failed_registration(student_id, is_new_student):
     """
     Nhận diện trực tiếp qua cờ tham số `is_new_student`
@@ -81,7 +79,6 @@ def cleanup_failed_registration(student_id, is_new_student):
 # ──────────────────────────────────────────────
 # Nhập thông tin sinh viên (CLI)
 # ──────────────────────────────────────────────
-
 def input_student_info():
     """
     Nhập thông tin sinh viên từ bàn phím (Dùng cho test CLI).
@@ -125,7 +122,6 @@ def input_student_info():
 # ──────────────────────────────────────────────
 # Chụp ảnh qua webcam
 # ──────────────────────────────────────────────
-
 def capture_face(student_id, num_photos=NUM_PHOTOS):
     """
     Mở webcam, chụp ảnh khuôn mặt sinh viên và lưu vào data/faces/MSSV/
@@ -206,8 +202,6 @@ def encode_and_save(student_id, image_paths):
     """
     Trích xuất face encoding từ danh sách ảnh đã chụp,
     tính trung bình các vector, lưu vào encodings.pkl.
-    Luồng xử lý:
-        ảnh JPG → face_recognition → numpy array (128,) → pickle.dump() → .pkl
     """
     encodings = []
     for img_path in image_paths:
@@ -258,8 +252,6 @@ def register_student_cli():
     update_student_image(student_id, image_paths[0])
     print(f"\n✅ Đăng ký/Khôi phục thành công: {student_id} - {full_name} - {gender}")
     return True
-
-
 # ──────────────────────────────────────────────
 # Flow đăng ký hoàn chỉnh — dùng cho UI
 # ──────────────────────────────────────────────
@@ -268,11 +260,10 @@ def register_student_from_ui(student_id, full_name, class_name, gender, force_re
     """
     Tham số mở rộng:
         force_recover = True nếu Người dùng bấm nút [Có] trên Pop-up hỏi ý kiến khôi phục.
-
     Trả về một tuple gồm 2 thành phần: (status_code, message)
     Các status_code trả về để UI xử lý:
         - "EXISTS"        : MSSV đang hoạt động, chặn đăng ký.
-        - "PROMPT_RECOVER": Phát hiện MSSV bị xóa mềm, UI cần hiện hộp thoại hỏi Có/Không.
+        - "PROMPT_RECOVER": Phát hiện MSSV bị xóa, UI cần hiện hộp thoại hỏi Có/Không.
         - "SUCCESS"       : Đăng ký / Khôi phục thành công mỹ mãn.
         - "FAILED"        : Thất bại do hủy cam hoặc lỗi trích xuất khuôn mặt.
     """
