@@ -3,3 +3,9 @@ venv/
 .idea/
 __pycache__/
 *.pyc
+
+data/attendance.db
+data/faces/
+data/encodings/
+
+reports/*.csv

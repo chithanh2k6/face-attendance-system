@@ -5,6 +5,7 @@ BASE_DIR    = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR    = os.path.join(BASE_DIR, "data")
 DB_PATH     = os.path.join(DATA_DIR, "attendance.db")
 FACES_DIR   = os.path.join(DATA_DIR, "faces")
+ENCODINGS_DIR = os.path.join(DATA_DIR, "encodings")
 REPORTS_DIR = os.path.join(BASE_DIR, "reports")
 
 
@@ -12,7 +13,7 @@ def initialize_directories():
     """
     tạo các thư mục cần thiết  nếu chưa tồn tại.
     """
-    for d in [DATA_DIR, FACES_DIR, REPORTS_DIR]:
+    for d in [DATA_DIR, FACES_DIR, ENCODINGS_DIR, REPORTS_DIR]:
         os.makedirs(d, exist_ok=True)
 
 
@@ -20,8 +21,10 @@ def connect_db(db_path=DB_PATH):
     """
     tự động tạo file DB nếu chưa tồn tại.
     """
+    initialize_directories()
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row  # Truy cập cột bằng tên: row["student_id"]
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -57,9 +60,10 @@ def create_tables(db_path=DB_PATH):
             date        TEXT    NOT NULL,
             time        TEXT    NOT NULL,
             status      TEXT    DEFAULT 'present',
-            subject     TEXT,
+            subject     TEXT    DEFAULT '',
             note        TEXT,
-            FOREIGN KEY (student_id) REFERENCES students(student_id)
+            FOREIGN KEY (student_id) REFERENCES students(student_id),
+            UNIQUE(student_id, date, subject)
         )
     """)
 
@@ -107,7 +111,8 @@ def add_student(student_id, full_name, class_name="", gender="", image_path="", 
         print(f"[DB] Đã thêm sinh viên mới: {student_id} - {full_name}")
         return True
     except sqlite3.IntegrityError:
-        conn.close()
+        if "conn" in locals():
+            conn.close()
         print(f"[DB] Lỗi trùng lặp dữ liệu cho MSSV: {student_id}")
         return False
 
@@ -207,7 +212,7 @@ def update_student_image(student_id, image_path, db_path=DB_PATH):
 def delete_student(student_id, db_path=DB_PATH):
     """
     giữ nguyên toàn bộ lịch sử điểm danh của sinh viên đó phục vụ báo cáo.
-    sau khi gọi hàm này, cần xóa encoding trong pkl bằng cách gọi remove_encoding trong rigister.py
+    sau khi gọi hàm này, cần xóa encoding trong pkl bằng cách gọi remove_encoding trong register.py
     """
     conn   = connect_db(db_path)
     cursor = conn.cursor()
@@ -234,12 +239,6 @@ def hard_delete_student(student_id, db_path=DB_PATH):
     conn.close()
 
 
-# def student_exists(student_id, db_path=DB_PATH):
-#     """Kiểm tra mssv đang hoạt đọng tồn tại trong DB chưa."""
-#     sv = get_student(student_id, include_deleted=False, db_path=db_path)
-#     return sv is not None
-
-
 # ──────────────────────────────────────────────
 # CRUD cho bảng attendance
 # ──────────────────────────────────────────────
@@ -249,13 +248,19 @@ def add_attendance(student_id, date, time, status="present", subject="", note=""
     Ghi 1 record điểm danh vào DB.
     Không kiểm tra trùng — gọi has_attended_today() trước khi dùng hàm này.
     """
-    conn   = connect_db(db_path)
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO attendance (student_id, date, time, status, subject, note)
-        VALUES (?, ?, ?, ?, ?, ?)""", (student_id, date, time, status, subject, note))
-    conn.commit()
-    conn.close()
+    try:
+        conn   = connect_db(db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO attendance (student_id, date, time, status, subject, note)
+            VALUES (?, ?, ?, ?, ?, ?)""", (student_id, date, time, status, subject, note))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        if "conn" in locals():
+            conn.close()
+        return False
 
 
 def has_attended_today(student_id, date, subject="", db_path=DB_PATH):
@@ -266,16 +271,10 @@ def has_attended_today(student_id, date, subject="", db_path=DB_PATH):
     """
     conn   = connect_db(db_path)
     cursor = conn.cursor()
-    if subject:
-        cursor.execute(
-            "SELECT id FROM attendance WHERE student_id=? AND date=? AND subject=?",
-            (student_id, date, subject)
-        )
-    else:
-        cursor.execute(
-            "SELECT id FROM attendance WHERE student_id=? AND date=?",
-            (student_id, date)
-        )
+    cursor.execute(
+        "SELECT id FROM attendance WHERE student_id=? AND date=? AND subject=?",
+        (student_id, date, subject)
+    )
     row = cursor.fetchone()
     conn.close()
     return row is not None
@@ -332,3 +331,7 @@ def get_all_attendance(db_path=DB_PATH):
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+if __name__ == "__main__":
+    create_tables()
