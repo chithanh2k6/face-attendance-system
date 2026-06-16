@@ -1,21 +1,7 @@
-import cv2
+from modules.database import create_tables
+from ui.app import run_app
 
-cap = cv2.VideoCapture(0)
 
-if not cap.isOpened():
-    print("Không mở được webcam")
-    exit()
-
-while True:
-    ret, frame = cap.read()
-
-    if not ret:
-        break
-
-    cv2.imshow("Webcam Test", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    create_tables()
+    run_app()

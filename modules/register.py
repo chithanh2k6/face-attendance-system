@@ -11,15 +11,20 @@ from modules.database import (
     reactivate_student_db,
     check_student_status,
     update_student_image,
-    # student_exists,
     delete_student,
     hard_delete_student,
     FACES_DIR,
     DATA_DIR,
+    ENCODINGS_DIR,
 )
 
-ENCODINGS_FILE = os.path.join(DATA_DIR, "encodings.pkl")
-NUM_PHOTOS     = 3
+# ──────────────────────────────────────────────
+# Cấu hình
+# ──────────────────────────────────────────────
+
+ENCODINGS_FILE = os.path.join(ENCODINGS_DIR, "encodings.pkl")
+NUM_PHOTOS     = 3  # Số ảnh chụp mỗi sinh viên
+
 
 # ──────────────────────────────────────────────
 # Quản lý file encodings.pkl
@@ -44,6 +49,7 @@ def save_encodings(encodings_dict):
     os.makedirs(os.path.dirname(ENCODINGS_FILE), exist_ok=True)
     with open(ENCODINGS_FILE, "wb") as f:
         pickle.dump(encodings_dict, f)
+
 
 def remove_encoding(student_id):
     """
