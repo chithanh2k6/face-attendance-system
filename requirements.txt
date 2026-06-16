@@ -1,9 +1,10 @@
-opencv-python
-face_recognition
+setuptools==69.5.1
+cmake
+dlib-bin
 face-recognition-models
+face_recognition
+opencv-python
 numpy
 pandas
 Pillow
-cmake
-dlib-bin
-setuptools==69.5.1
+customtkinter
