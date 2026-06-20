@@ -2,9 +2,10 @@ setuptools==69.5.1
 cmake
 dlib-bin
 face-recognition-models
-face_recognition
+face-recognition
 opencv-python
 numpy
 pandas
+openpyxl
 Pillow
 customtkinter

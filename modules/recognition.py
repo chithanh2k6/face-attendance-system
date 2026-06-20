@@ -1,6 +1,8 @@
+import os
 import cv2
 import numpy as np
 import face_recognition
+from PIL import Image, ImageDraw, ImageFont
 
 from modules.database import create_tables, get_student
 from modules.register import load_encodings
@@ -14,6 +16,27 @@ from modules.attendance import mark_attendance
 TOLERANCE = 0.5
 FRAME_RESIZE_SCALE = 0.25
 DETECT_EVERY = 2
+
+
+# ──────────────────────────────────────────────
+# Font hiển thị tiếng Việt trên webcam
+# ──────────────────────────────────────────────
+
+def get_vietnamese_font(size=22):
+    """
+    Lấy font Windows hỗ trợ tiếng Việt để hiển thị tên sinh viên trên webcam.
+    """
+    font_paths = [
+        r"C:\Windows\Fonts\segoeui.ttf",
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\tahoma.ttf",
+    ]
+
+    for font_path in font_paths:
+        if os.path.exists(font_path):
+            return ImageFont.truetype(font_path, size)
+
+    return ImageFont.load_default()
 
 
 # ──────────────────────────────────────────────
@@ -133,7 +156,10 @@ def recognize_faces_in_frame(frame, known_student_ids, known_face_encodings):
 def draw_recognition_results(frame, results):
     """
     Vẽ bounding box và tên sinh viên lên frame webcam.
+    Dùng Pillow để hiển thị tiếng Việt có dấu.
     """
+    labels = []
+
     for result in results:
         top, right, bottom, left = result["location"]
         name = result["name"]
@@ -144,17 +170,20 @@ def draw_recognition_results(frame, results):
             box_color = (0, 0, 255)
 
         cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
-
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), box_color, cv2.FILLED)
-        cv2.putText(
-            frame,
-            name,
-            (left + 6, bottom - 10),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.7,
-            (255, 255, 255),
-            2
-        )
+
+        labels.append((name, left + 6, bottom - 30))
+
+    if labels:
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image_pil = Image.fromarray(frame_rgb)
+        draw = ImageDraw.Draw(image_pil)
+        font = get_vietnamese_font(22)
+
+        for name, x, y in labels:
+            draw.text((x, y), name, font=font, fill=(255, 255, 255))
+
+        frame = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
     return frame
 
@@ -221,10 +250,7 @@ def run_face_attendance(subject=""):
 
                 if student_id and student_id not in marked_students:
                     success, message = mark_attendance(student_id, subject)
-
-                    if success:
-                        marked_students.add(student_id)
-
+                    marked_students.add(student_id)
                     print(message)
 
         display = draw_recognition_results(frame.copy(), current_results)

@@ -62,7 +62,7 @@ def mark_attendance(student_id, subject="", note=""):
     current_date, current_time = get_current_date_time()
 
     if has_attended_today(student_id, current_date, subject):
-        return False, f"{student['full_name']} đã điểm danh hôm nay."
+        return False, f"{student['full_name']} đã điểm danh cho nội dung này hôm nay."
 
     success = add_attendance(
         student_id=student_id,

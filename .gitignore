@@ -1,11 +1,31 @@
+# Virtual environment
 venv/
 .venv/
+
+# IDE
 .idea/
+.vscode/
+
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
+# Database
 data/attendance.db
-data/faces/
-data/encodings/
 
+# Generated face data
+data/faces/*
+data/encodings/*
+!data/faces/.gitkeep
+!data/encodings/.gitkeep
+
+# Reports
 reports/*.csv
+reports/*.xlsx
+!reports/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
