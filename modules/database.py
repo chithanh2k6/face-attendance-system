@@ -186,6 +186,29 @@ def get_all_students(db_path=DB_PATH):
     return [dict(row) for row in rows]
 
 
+def search_students(keyword, db_path=DB_PATH):
+    """
+    Tìm kiếm sinh viên theo MSSV, họ tên hoặc lớp.
+    """
+    keyword = keyword.strip() if keyword else ""
+
+    if not keyword:
+        return get_all_students(db_path)
+
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    like_keyword = f"%{keyword}%"
+    cursor.execute("""
+        SELECT * FROM students
+        WHERE is_active = 1
+          AND (student_id LIKE ? OR full_name LIKE ? OR class_name LIKE ?)
+        ORDER BY student_id
+    """, (like_keyword, like_keyword, like_keyword))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
 def update_student_image(student_id, image_path, db_path=DB_PATH):
     """
     Cập nhật đường dẫn ảnh đại diện của sinh viên sau khi chụp xong.
@@ -290,6 +313,25 @@ def get_attendance_by_date(date, db_path=DB_PATH):
     return [dict(row) for row in rows]
 
 
+def get_attendance_by_date_range(start_date, end_date, db_path=DB_PATH):
+    """
+    lấy danh sách điểm danh theo khoảng ngày, kèm họ tên và lớp.
+    """
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT a.student_id, s.full_name, s.class_name,
+               a.date, a.time, a.status, a.subject, a.note
+        FROM   attendance a
+        JOIN   students   s ON a.student_id = s.student_id
+        WHERE  a.date BETWEEN ? AND ?
+        ORDER  BY a.date DESC, a.time DESC
+    """, (start_date, end_date))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
 def get_attendance_by_student(student_id, db_path=DB_PATH):
     """
     lấy toàn bộ lịch sử điểm danh của 1 sinh viên.
@@ -319,6 +361,121 @@ def get_all_attendance(db_path=DB_PATH):
         JOIN   students   s ON a.student_id = s.student_id
         ORDER  BY a.date DESC, a.time DESC
     """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+# ──────────────────────────────────────────────
+# Thống kê dashboard
+# ──────────────────────────────────────────────
+
+def get_total_students(db_path=DB_PATH):
+    """
+    đếm tổng số sinh viên đang hoạt động.
+    """
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) AS total FROM students WHERE is_active = 1")
+    row = cursor.fetchone()
+    conn.close()
+    return row["total"] if row else 0
+
+
+def get_today_attendance_count(db_path=DB_PATH):
+    """
+    đếm số sinh viên đã điểm danh trong ngày hiện tại.
+    """
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT COUNT(DISTINCT student_id) AS total
+        FROM attendance
+        WHERE date = date('now', 'localtime')
+    """)
+    row = cursor.fetchone()
+    conn.close()
+    return row["total"] if row else 0
+
+
+def get_total_attendance_count(db_path=DB_PATH):
+    """
+    đếm tổng số lượt điểm danh.
+    """
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) AS total FROM attendance")
+    row = cursor.fetchone()
+    conn.close()
+    return row["total"] if row else 0
+
+
+def get_not_attended_today_count(db_path=DB_PATH):
+    """
+    đếm số sinh viên chưa điểm danh trong ngày hiện tại.
+    """
+    total_students = get_total_students(db_path)
+    today_count = get_today_attendance_count(db_path)
+    return max(total_students - today_count, 0)
+
+
+def get_class_statistics(db_path=DB_PATH):
+    """
+    thống kê số sinh viên và số sinh viên đã điểm danh hôm nay theo lớp.
+    """
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            COALESCE(NULLIF(s.class_name, ''), 'Chưa có lớp') AS class_name,
+            COUNT(DISTINCT s.student_id) AS total_students,
+            COUNT(DISTINCT CASE 
+                WHEN a.date = date('now', 'localtime') THEN a.student_id 
+            END) AS attended_today
+        FROM students s
+        LEFT JOIN attendance a ON s.student_id = a.student_id
+        WHERE s.is_active = 1
+        GROUP BY COALESCE(NULLIF(s.class_name, ''), 'Chưa có lớp')
+        ORDER BY class_name
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_subject_statistics(db_path=DB_PATH):
+    """
+    thống kê số lượt điểm danh theo môn học.
+    """
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            COALESCE(NULLIF(subject, ''), 'Không có môn') AS subject,
+            COUNT(*) AS attendance_count
+        FROM attendance
+        GROUP BY COALESCE(NULLIF(subject, ''), 'Không có môn')
+        ORDER BY attendance_count DESC, subject
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_recent_attendance(limit=10, db_path=DB_PATH):
+    """
+    lấy danh sách điểm danh gần đây.
+    """
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT a.student_id, s.full_name, s.class_name,
+               a.date, a.time, a.status, a.subject, a.note
+        FROM   attendance a
+        JOIN   students   s ON a.student_id = s.student_id
+        ORDER  BY a.date DESC, a.time DESC
+        LIMIT ?
+    """, (limit,))
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
