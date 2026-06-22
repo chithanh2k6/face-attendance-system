@@ -49,21 +49,19 @@ def create_tables(db_path=DB_PATH):
             created_at  TEXT    DEFAULT (datetime('now', 'localtime'))
         )
     """)
-
     # Bảng attendance
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS attendance (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            student_id  TEXT    NOT NULL,
-            date        TEXT    NOT NULL,
-            time        TEXT    NOT NULL,
-            status      TEXT    DEFAULT 'present',
-            subject     TEXT    DEFAULT '',
-            note        TEXT,
-            FOREIGN KEY (student_id) REFERENCES students(student_id),
-            UNIQUE(student_id, date, subject)
-        )
-    """)
+            CREATE TABLE IF NOT EXISTS attendance (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id  TEXT    NOT NULL,
+                date        TEXT    NOT NULL,
+                time        TEXT    NOT NULL,
+                status      TEXT    DEFAULT 'Có mặt',
+                subject     TEXT    DEFAULT '',
+                note        TEXT,
+                FOREIGN KEY (student_id) REFERENCES students(student_id)
+            )
+        """)
 
     conn.commit()
     conn.close()
@@ -261,21 +259,14 @@ def hard_delete_student(student_id, db_path=DB_PATH):
 def add_attendance(student_id, date, time, status="Có mặt", subject="", note="", db_path=DB_PATH):
     """
     Ghi 1 record điểm danh vào DB.
-    Không kiểm tra trùng — gọi has_attended_today() trước khi dùng hàm này.
     """
-    try:
-        conn   = connect_db(db_path)
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO attendance (student_id, date, time, status, subject, note)
+    conn   = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""INSERT INTO attendance (student_id, date, time, status, subject, note)
             VALUES (?, ?, ?, ?, ?, ?)""", (student_id, date, time, status, subject, note))
-        conn.commit()
-        conn.close()
-        return True
-    except sqlite3.IntegrityError:
-        if "conn" in locals():
-            conn.close()
-        return False
+    conn.commit()
+    conn.close()
+    return True
 
 
 def has_attended_today(student_id, date, subject="", db_path=DB_PATH):
