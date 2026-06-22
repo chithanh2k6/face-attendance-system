@@ -27,6 +27,7 @@ from modules.database import (
 from modules.register import (
     register_student_from_ui,
     remove_encoding,
+    update_face_from_ui,
 )
 from modules.recognition import run_face_attendance
 from modules.report import export_attendance_report
@@ -71,18 +72,19 @@ COLORS_DARK = {
 COLORS = dict(COLORS_LIGHT)
 
 # Hằng số bố cục dùng chung — giữ đồng bộ khoảng cách toàn app
-SIDEBAR_WIDTH  = 232
+SIDEBAR_WIDTH  = 240
 CONTENT_PADX   = 24
 CARD_RADIUS    = 12
 BTN_RADIUS     = 8
 ENTRY_RADIUS   = 8
 
-FONT_HEADING  = ("Segoe UI", 19, "bold")
-FONT_SUBHEAD  = ("Segoe UI", 12, "bold")
-FONT_BODY     = ("Segoe UI", 11)
-FONT_SMALL    = ("Segoe UI", 10)
-FONT_MONO     = ("Consolas", 9)
-FONT_BADGE    = ("Segoe UI", 8, "bold")
+
+FONT_HEADING  = ("Segoe UI", 24, "bold")
+FONT_SUBHEAD  = ("Segoe UI", 16, "bold")
+FONT_BODY     = ("Segoe UI", 14)
+FONT_SMALL    = ("Segoe UI", 13)
+FONT_MONO     = ("Consolas", 12)
+FONT_BADGE    = ("Segoe UI", 11, "bold")
 
 # ──────────────────────────────────────────────
 # Theme helpers
@@ -125,9 +127,9 @@ def _flat_btn(parent, text, command, color=None, text_color=None,
         fg_color=bg,
         text_color=fg,
         hover_color=_darken(bg, 24),
-        font=font or ctk.CTkFont(family="Segoe UI", size=10),
+        font=font or ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
         width=width or 0,
-        height=34,
+        height=38, # Nâng chiều cao nút
         corner_radius=BTN_RADIUS,
     )
     return btn
@@ -141,7 +143,7 @@ def _label(parent, text, font=None, color=None, **kw):
         text=text,
         font=ctk.CTkFont(family=font[0], size=font[1],
                          weight="bold" if len(font) > 2 and "bold" in font[2] else "normal")
-              if font else ctk.CTkFont(family="Segoe UI", size=10),
+              if font else ctk.CTkFont(family="Segoe UI", size=13),
         text_color=color or COLORS["text"],
         fg_color=bg,
         **kw,
@@ -159,8 +161,8 @@ def _entry(parent, textvariable=None, width=200, show=None):
         parent,
         textvariable=textvariable,
         width=width,
-        height=34,
-        font=ctk.CTkFont(family="Segoe UI", size=10),
+        height=38, # Nâng chiều cao ô nhập
+        font=ctk.CTkFont(family="Segoe UI", size=13),
         fg_color=COLORS["surface"],
         text_color=COLORS["text"],
         border_color=COLORS["border"],
@@ -208,7 +210,7 @@ class NavButton(ctk.CTkFrame):
         self.icon_lbl = ctk.CTkLabel(
             self,
             text=icon,
-            font=ctk.CTkFont(family="Segoe UI Emoji", size=14),
+            font=ctk.CTkFont(family="Segoe UI Emoji", size=18),
             text_color=COLORS["text_dim"],
             fg_color=self._bg_normal,
             width=28,
@@ -217,7 +219,7 @@ class NavButton(ctk.CTkFrame):
         self.text_lbl = ctk.CTkLabel(
             self,
             text=label,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             text_color=COLORS["text_dim"],
             fg_color=self._bg_normal,
             anchor="w",
@@ -233,7 +235,6 @@ class NavButton(ctk.CTkFrame):
     def set_active(self, active):
         self._active = active
         bg = self._bg_active if active else self._bg_normal
-        # Chữ trên nền accent luôn dùng on_accent để đảm bảo tương phản
         fg = COLORS["on_accent"] if active else COLORS["text_dim"]
         for w in (self, self.icon_lbl, self.text_lbl):
             w.configure(fg_color=bg)
@@ -241,11 +242,10 @@ class NavButton(ctk.CTkFrame):
         font_weight = "bold" if active else "normal"
         self.text_lbl.configure(
             text_color=fg,
-            font=ctk.CTkFont(family="Segoe UI", size=11, weight=font_weight),
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight=font_weight),
         )
 
     def refresh_colors(self):
-        """Làm mới màu sau khi đổi theme."""
         self._bg_normal = COLORS["surface"]
         self._bg_hover  = COLORS["surface_alt"]
         self._bg_active = COLORS["accent"]
@@ -266,10 +266,6 @@ class NavButton(ctk.CTkFrame):
 # ──────────────────────────────────────────────
 
 class StyledTable(ctk.CTkFrame):
-    """
-    Wrapper cho ttk.Treeview với scrollbar dọc,
-    áp dụng màu sắc phù hợp theme hiện tại.
-    """
     def __init__(self, parent, columns, headings, col_widths=None,
                  col_alignments=None, rows=None, **kw):
         super().__init__(parent, fg_color=COLORS["surface"],
@@ -293,7 +289,7 @@ class StyledTable(ctk.CTkFrame):
             background=COLORS["surface"],
             foreground=COLORS["text"],
             fieldbackground=COLORS["surface"],
-            rowheight=28,
+            rowheight=36, # Mở rộng khoảng cách dòng cho chữ to
             font=FONT_BODY,
             borderwidth=0,
         )
@@ -304,6 +300,7 @@ class StyledTable(ctk.CTkFrame):
             font=FONT_SMALL,
             relief="flat",
             borderwidth=0,
+            padding=(0, 6)
         )
         self._style.map(
             "Dark.Treeview",
@@ -315,7 +312,6 @@ class StyledTable(ctk.CTkFrame):
         ])
 
     def _build_tree(self):
-        """Tạo hoặc tạo lại Treeview và scrollbar bên trong frame."""
         for child in self.winfo_children():
             child.destroy()
 
@@ -341,7 +337,6 @@ class StyledTable(ctk.CTkFrame):
         scroll.pack(side="right", fill="y", pady=2)
 
     def refresh_style(self):
-        """Làm mới style Treeview sau khi đổi theme."""
         self._apply_treeview_style()
         self.configure(
             fg_color=COLORS["surface"],
@@ -365,10 +360,6 @@ class StyledTable(ctk.CTkFrame):
 # ──────────────────────────────────────────────
 
 class Toast:
-    """
-    Thông báo nổi tạm thời (auto-dismiss sau 3 giây).
-    Hiện ở góc dưới phải màn hình.
-    """
     def __init__(self, root):
         self.root = root
         self._win = None
@@ -400,7 +391,6 @@ class Toast:
         win.attributes("-alpha", 0.97)
         win.configure(bg=color)
 
-        # Padding frame
         frm = tk.Frame(win, bg=color, padx=18, pady=12)
         frm.pack()
         tk.Label(
@@ -408,7 +398,6 @@ class Toast:
             fg="#FFFFFF", bg=color, wraplength=300, justify="left",
         ).pack()
 
-        # Căn góc dưới phải
         win.update_idletasks()
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
@@ -432,40 +421,33 @@ class Toast:
 # ──────────────────────────────────────────────
 
 class RegisterPanel(ctk.CTkFrame):
-    """
-    Form nhập thông tin và khởi động luồng đăng ký sinh viên.
-    Nối với register_student_from_ui() từ modules/register.py.
-    """
     def __init__(self, parent, toast, **kw):
         super().__init__(parent, fg_color=COLORS["bg"], corner_radius=0, **kw)
         self.toast = toast
         self._build()
 
     def _build(self):
-        # Tiêu đề
         header = ctk.CTkFrame(self, fg_color=COLORS["bg"])
         header.pack(fill="x", padx=CONTENT_PADX, pady=(26, 6))
         ctk.CTkLabel(
             header, text="Đăng ký sinh viên",
-            font=ctk.CTkFont(family="Segoe UI", size=19, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["bg"],
         ).pack(anchor="w")
         ctk.CTkLabel(
             header,
             text="Nhập thông tin và chụp ảnh khuôn mặt qua webcam.",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         ).pack(anchor="w", pady=(2, 0))
         _separator(self).pack(fill="x", padx=CONTENT_PADX, pady=(10, 0))
 
-        # Form card
         card = _card(self)
         card.pack(fill="x", padx=CONTENT_PADX, pady=18)
 
         form = ctk.CTkFrame(card, fg_color=COLORS["surface"])
         form.pack(padx=22, pady=18, anchor="w")
 
-        # Các biến form
         self.var_id     = tk.StringVar()
         self.var_name   = tk.StringVar()
         self.var_class  = tk.StringVar()
@@ -479,23 +461,22 @@ class RegisterPanel(ctk.CTkFrame):
 
         for label_text, var, _ in fields:
             row = ctk.CTkFrame(form, fg_color=COLORS["surface"])
-            row.pack(fill="x", pady=5)
+            row.pack(fill="x", pady=8)
             ctk.CTkLabel(
                 row, text=label_text,
-                font=ctk.CTkFont(family="Segoe UI", size=9),
+                font=ctk.CTkFont(family="Segoe UI", size=13),
                 text_color=COLORS["text_dim"], fg_color=COLORS["surface"],
-                width=110, anchor="w",
+                width=130, anchor="w",
             ).pack(side="left")
-            _entry(row, textvariable=var, width=260).pack(side="left")
+            _entry(row, textvariable=var, width=280).pack(side="left")
 
-        # Giới tính – radio buttons
         gender_row = ctk.CTkFrame(form, fg_color=COLORS["surface"])
-        gender_row.pack(fill="x", pady=5)
+        gender_row.pack(fill="x", pady=8)
         ctk.CTkLabel(
             gender_row, text="Giới tính",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["surface"],
-            width=110, anchor="w",
+            width=130, anchor="w",
         ).pack(side="left")
         for val in ("Nam", "Nữ"):
             tk.Radiobutton(
@@ -503,9 +484,8 @@ class RegisterPanel(ctk.CTkFrame):
                 font=FONT_BODY, fg=COLORS["text"], bg=COLORS["surface"],
                 selectcolor=COLORS["surface_alt"], activebackground=COLORS["surface"],
                 activeforeground=COLORS["text"], bd=0, cursor="hand2",
-            ).pack(side="left", padx=(0, 12))
+            ).pack(side="left", padx=(0, 16))
 
-        # Nút hành động
         btn_row = ctk.CTkFrame(card, fg_color=COLORS["surface"])
         btn_row.pack(padx=22, pady=(0, 18), anchor="w")
 
@@ -513,7 +493,7 @@ class RegisterPanel(ctk.CTkFrame):
             btn_row, "Đăng ký & Chụp ảnh",
             command=self._start_register,
             color=COLORS["success"],
-        ).pack(side="left", padx=(0, 10))
+        ).pack(side="left", padx=(0, 12))
         _flat_btn(
             btn_row, "Xóa form",
             command=self._clear_form,
@@ -521,15 +501,13 @@ class RegisterPanel(ctk.CTkFrame):
             text_color=COLORS["text_dim"],
         ).pack(side="left")
 
-        # Trạng thái
         self.status_lbl = ctk.CTkLabel(
             self, text="",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         )
         self.status_lbl.pack(anchor="w", padx=CONTENT_PADX, pady=(0, 8))
 
-        # Ghi chú
         note_frame = ctk.CTkFrame(
             self, fg_color=COLORS["surface_alt"],
             corner_radius=BTN_RADIUS, border_width=1, border_color=COLORS["border"],
@@ -538,12 +516,10 @@ class RegisterPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             note_frame,
             text="Lưu ý: Sau khi bấm đăng ký, webcam sẽ mở. Nhấn SPACE để chụp ảnh, Q để hủy.",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["surface_alt"],
-            wraplength=560, justify="left",
-        ).pack(padx=14, pady=10, anchor="w")
-
-    # Hành động
+            wraplength=600, justify="left",
+        ).pack(padx=16, pady=12, anchor="w")
 
     def _clear_form(self):
         self.var_id.set("")
@@ -563,7 +539,6 @@ class RegisterPanel(ctk.CTkFrame):
 
         self._set_status("Đang khởi động webcam...", COLORS["warning"])
 
-        # Chạy trong thread riêng để không treo UI
         def _run():
             status, msg = register_student_from_ui(
                 student_id, full_name, class_name, gender
@@ -578,26 +553,21 @@ class RegisterPanel(ctk.CTkFrame):
         threading.Thread(target=_run, daemon=True).start()
 
     def _handle_register_result(self, status, msg, sid, fname, cname, gender):
-        """Xử lý kết quả trả về từ register_student_from_ui."""
         if status == "SUCCESS":
             self._set_status(msg, COLORS["success"])
             self.toast.show(msg, "success")
             self._clear_form()
-
         elif status == "PROMPT_RECOVER":
-            # Hỏi người dùng có muốn khôi phục không
             answer = messagebox.askyesno(
                 "Phát hiện sinh viên cũ",
                 msg + "\n\nBạn có muốn khôi phục không?",
             )
             if answer:
                 self._set_status("Đang khởi động webcam để chụp lại ảnh...", COLORS["warning"])
-
                 def _recover():
                     s2, m2 = register_student_from_ui(
                         sid, fname, cname, gender, force_recover=True
                     )
-
                     def _update_ui():
                         if s2 == "SUCCESS":
                             self._set_status(m2, COLORS["success"])
@@ -606,23 +576,18 @@ class RegisterPanel(ctk.CTkFrame):
                         else:
                             self._set_status(m2, COLORS["danger"])
                             self.toast.show(m2, "error")
-
                     self.after(0, _update_ui)
-
                 threading.Thread(target=_recover, daemon=True).start()
             else:
                 self._set_status("Đã hủy khôi phục.", COLORS["text_muted"])
-
         elif status == "EXISTS":
             self._set_status(msg, COLORS["warning"])
             self.toast.show(msg, "warning")
-
         else:
             self._set_status(msg, COLORS["danger"])
             self.toast.show(msg, "error")
 
     def _set_status(self, text, color):
-        """Cập nhật label trạng thái (an toàn từ thread phụ)."""
         self.after(0, lambda: self.status_lbl.configure(text=text, text_color=color))
 
 # ──────────────────────────────────────────────
@@ -630,10 +595,6 @@ class RegisterPanel(ctk.CTkFrame):
 # ──────────────────────────────────────────────
 
 class RecognitionPanel(ctk.CTkFrame):
-    """
-    Mở webcam nhận diện khuôn mặt realtime và ghi điểm danh tự động.
-    Nối với run_face_attendance() từ modules/recognition.py.
-    """
     def __init__(self, parent, toast, **kw):
         super().__init__(parent, fg_color=COLORS["bg"], corner_radius=0, **kw)
         self.toast    = toast
@@ -641,23 +602,21 @@ class RecognitionPanel(ctk.CTkFrame):
         self._build()
 
     def _build(self):
-        # Tiêu đề
         header = ctk.CTkFrame(self, fg_color=COLORS["bg"])
         header.pack(fill="x", padx=CONTENT_PADX, pady=(26, 6))
         ctk.CTkLabel(
             header, text="Nhận diện & Điểm danh",
-            font=ctk.CTkFont(family="Segoe UI", size=19, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["bg"],
         ).pack(anchor="w")
         ctk.CTkLabel(
             header,
             text="Bật webcam để nhận diện khuôn mặt và điểm danh tự động.",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         ).pack(anchor="w", pady=(2, 0))
         _separator(self).pack(fill="x", padx=CONTENT_PADX, pady=(10, 0))
 
-        # Tùy chọn môn học
         opt_card = _card(self)
         opt_card.pack(fill="x", padx=CONTENT_PADX, pady=18)
         inner = ctk.CTkFrame(opt_card, fg_color=COLORS["surface"])
@@ -665,19 +624,18 @@ class RecognitionPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             inner, text="Nội dung điểm danh",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
         ).pack(anchor="w", pady=(0, 8))
         self.var_subject = tk.StringVar()
-        _entry(inner, textvariable=self.var_subject, width=300).pack(anchor="w")
+        _entry(inner, textvariable=self.var_subject, width=350).pack(anchor="w")
         ctk.CTkLabel(
             inner,
             text="Nhập môn / lớp học phần hoặc lớp hành chính nếu cần điểm danh nhiều buổi trong cùng ngày.",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
-        ).pack(anchor="w", pady=(4, 0))
+        ).pack(anchor="w", pady=(6, 0))
 
-        # Nút
         btn_card = ctk.CTkFrame(self, fg_color=COLORS["bg"])
         btn_card.pack(fill="x", padx=CONTENT_PADX)
         self.btn_start = _flat_btn(
@@ -687,15 +645,13 @@ class RecognitionPanel(ctk.CTkFrame):
         )
         self.btn_start.pack(side="left", padx=(0, 12))
 
-        # Trạng thái
         self.status_lbl = ctk.CTkLabel(
             self, text="",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         )
         self.status_lbl.pack(anchor="w", padx=CONTENT_PADX, pady=(14, 0))
 
-        # Ghi chú
         note_frame = ctk.CTkFrame(
             self, fg_color=COLORS["surface_alt"],
             corner_radius=BTN_RADIUS, border_width=1, border_color=COLORS["border"],
@@ -708,10 +664,10 @@ class RecognitionPanel(ctk.CTkFrame):
                 "Trong cùng một ngày, mỗi sinh viên chỉ được ghi một lần cho cùng nội dung điểm danh.\n"
                 "Nhấn Q trong cửa sổ webcam để kết thúc."
             ),
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["surface_alt"],
             justify="left",
-        ).pack(padx=14, pady=10, anchor="w")
+        ).pack(padx=16, pady=12, anchor="w")
 
     def _start_recognition(self):
         if self._running:
@@ -725,7 +681,6 @@ class RecognitionPanel(ctk.CTkFrame):
 
         def _run():
             result = run_face_attendance(subject)
-
             def _update_ui():
                 self._running = False
                 self.btn_start.configure(state="normal")
@@ -738,9 +693,7 @@ class RecognitionPanel(ctk.CTkFrame):
                         COLORS["danger"],
                     )
                     self.toast.show("Không thể bắt đầu nhận diện.", "error")
-
             self.after(0, _update_ui)
-
         threading.Thread(target=_run, daemon=True).start()
 
     def _set_status(self, text, color):
@@ -751,10 +704,6 @@ class RecognitionPanel(ctk.CTkFrame):
 # ──────────────────────────────────────────────
 
 class AttendancePanel(ctk.CTkFrame):
-    """
-    Hiển thị dashboard tổng quan điểm danh.
-    Bao gồm thống kê nhanh, thống kê theo lớp, theo môn và điểm danh gần đây.
-    """
     def __init__(self, parent, toast, **kw):
         super().__init__(parent, fg_color=COLORS["bg"], corner_radius=0, **kw)
         self.toast = toast
@@ -763,20 +712,19 @@ class AttendancePanel(ctk.CTkFrame):
         self._build()
 
     def _build(self):
-        # Tiêu đề + nút làm mới
         header = ctk.CTkFrame(self, fg_color=COLORS["bg"])
         header.pack(fill="x", padx=CONTENT_PADX, pady=(22, 4))
         title_box = ctk.CTkFrame(header, fg_color=COLORS["bg"])
         title_box.pack(side="left", anchor="w")
         ctk.CTkLabel(
             title_box, text="Tổng quan",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["bg"],
         ).pack(anchor="w")
         ctk.CTkLabel(
             title_box,
             text="Theo dõi số lượng đi học, vắng và điểm danh theo lớp hành chính hoặc nội dung học tập.",
-            font=ctk.CTkFont(family="Segoe UI", size=10),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         ).pack(anchor="w", pady=(2, 0))
         _flat_btn(
@@ -784,14 +732,13 @@ class AttendancePanel(ctk.CTkFrame):
             command=self.load_data,
             color=COLORS["surface_alt"],
             text_color=COLORS["text_dim"],
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=12),
         ).pack(side="right", pady=4)
         _separator(self).pack(fill="x", padx=CONTENT_PADX, pady=(8, 0))
 
         content = ctk.CTkFrame(self, fg_color=COLORS["bg"], corner_radius=0)
         content.pack(fill="both", expand=True)
 
-        # Card thống kê nhanh — gọn, có icon-badge để phân biệt nhanh
         card_row = ctk.CTkFrame(content, fg_color=COLORS["bg"])
         card_row.pack(fill="x", padx=CONTENT_PADX, pady=(10, 8))
 
@@ -800,26 +747,24 @@ class AttendancePanel(ctk.CTkFrame):
         self._build_stat_card(card_row, "Chưa điểm danh hôm nay", "not_attended_today", "⏳", COLORS["warning"])
         self._build_stat_card(card_row, "Tổng lượt điểm danh", "total_attendance", "🧾", COLORS["danger"], last=True)
 
-        # Bảng điểm danh gần đây
         recent_card = _card(content)
         recent_card.pack(fill="x", padx=CONTENT_PADX, pady=(0, 8))
         ctk.CTkLabel(
             recent_card, text="Điểm danh gần đây",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
-        ).pack(anchor="w", padx=14, pady=(12, 6))
+        ).pack(anchor="w", padx=16, pady=(14, 8))
 
         cols   = ("date", "time", "student_id", "full_name", "class_name", "subject")
         heads  = ("Ngày", "Giờ", "Mã sinh viên", "Họ và tên", "Lớp hành chính", "Môn / Lớp học phần")
-        widths = [90, 70, 115, 190, 130, 190]
+        widths = [110, 90, 130, 220, 150, 220]
         aligns = ["center", "center", "center", "w", "center", "w"]
         self.recent_table = StyledTable(
             recent_card, columns=cols, headings=heads,
             col_widths=widths, col_alignments=aligns, rows=10,
         )
-        self.recent_table.pack(fill="x", padx=12, pady=(0, 12))
+        self.recent_table.pack(fill="x", padx=14, pady=(0, 14))
 
-        # Thống kê theo lớp và môn
         stats_row = ctk.CTkFrame(content, fg_color=COLORS["bg"])
         stats_row.pack(fill="x", padx=CONTENT_PADX, pady=(0, 16))
         stats_row.grid_columnconfigure(0, weight=1, uniform="dashboard_stats")
@@ -829,78 +774,73 @@ class AttendancePanel(ctk.CTkFrame):
         class_card.grid(row=0, column=0, sticky="nsew", padx=(0, 7))
         ctk.CTkLabel(
             class_card, text="Thống kê theo lớp hành chính",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
-        ).pack(anchor="w", padx=14, pady=(12, 6))
+        ).pack(anchor="w", padx=16, pady=(14, 8))
 
         cols   = ("class_name", "total_students", "attended_today", "not_attended")
         heads  = ("Lớp hành chính", "Tổng sinh viên", "Đã điểm danh", "Chưa điểm danh")
-        widths = [190, 120, 120, 120]
+        widths = [200, 130, 130, 130]
         aligns = ["w", "center", "center", "center"]
         self.class_table = StyledTable(
             class_card, columns=cols, headings=heads,
             col_widths=widths, col_alignments=aligns, rows=10,
         )
-        self.class_table.pack(fill="x", padx=12, pady=(0, 12))
+        self.class_table.pack(fill="x", padx=14, pady=(0, 14))
 
         subject_card = _card(stats_row)
         subject_card.grid(row=0, column=1, sticky="nsew", padx=(7, 0))
         ctk.CTkLabel(
             subject_card, text="Thống kê theo môn / lớp học phần",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
-        ).pack(anchor="w", padx=14, pady=(12, 6))
+        ).pack(anchor="w", padx=16, pady=(14, 8))
 
         cols   = ("subject", "total_students", "attended_today", "not_attended")
         heads  = ("Môn / Lớp học phần", "Tổng sinh viên", "Đã điểm danh", "Chưa điểm danh")
-        widths = [220, 110, 110, 110]
+        widths = [230, 120, 120, 120]
         aligns = ["w", "center", "center", "center"]
         self.subject_table = StyledTable(
             subject_card, columns=cols, headings=heads,
             col_widths=widths, col_alignments=aligns, rows=10,
         )
-        self.subject_table.pack(fill="x", padx=12, pady=(0, 12))
+        self.subject_table.pack(fill="x", padx=14, pady=(0, 14))
 
         self.load_data()
 
     def _build_stat_card(self, parent, title, key, icon, color, last=False):
-        """
-        Thẻ thống kê gọn: icon-badge màu + tiêu đề ở hàng trên, giá trị lớn ở dưới.
-        Giá trị dùng màu chữ trung tính để tránh quá sặc sỡ, badge mang màu phân loại.
-        """
         card = _card(parent)
-        card.pack(side="left", fill="x", expand=True, padx=(0, 0 if last else 10))
+        card.pack(side="left", fill="x", expand=True, padx=(0, 0 if last else 12))
         self.stat_cards[key] = card
 
         top_row = ctk.CTkFrame(card, fg_color=COLORS["surface"])
-        top_row.pack(fill="x", padx=14, pady=(12, 0), anchor="w")
+        top_row.pack(fill="x", padx=16, pady=(14, 0), anchor="w")
 
         badge = ctk.CTkLabel(
             top_row, text=icon,
-            font=ctk.CTkFont(family="Segoe UI Emoji", size=13),
+            font=ctk.CTkFont(family="Segoe UI Emoji", size=18),
             text_color=COLORS["on_accent"], fg_color=color,
-            width=28, height=28, corner_radius=8,
+            width=36, height=36, corner_radius=8,
         )
-        badge.pack(side="left", padx=(0, 8))
+        badge.pack(side="left", padx=(0, 10))
 
         ctk.CTkLabel(
             top_row, text=title,
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
-            anchor="w", justify="left", wraplength=140,
+            anchor="w", justify="left", wraplength=160,
         ).pack(side="left", fill="x", expand=True)
 
         value_lbl = ctk.CTkLabel(
             card, text="0",
-            font=ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=28, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
         )
-        value_lbl.pack(anchor="w", padx=14, pady=(6, 12))
+        value_lbl.pack(anchor="w", padx=16, pady=(8, 16))
 
         self.stat_labels[key] = value_lbl
 
     def load_data(self):
-        """Tải lại dữ liệu dashboard."""
         total_students = get_total_students()
         today_count = get_today_attendance_count()
         not_attended_today = get_not_attended_today_count()
@@ -979,10 +919,6 @@ class AttendancePanel(ctk.CTkFrame):
 # ──────────────────────────────────────────────
 
 class StudentsPanel(ctk.CTkFrame):
-    """
-    Danh sách toàn bộ sinh viên đang hoạt động.
-    Cho phép tìm kiếm, chỉnh sửa, xem ảnh, xem lịch sử và xóa mềm.
-    """
     def __init__(self, parent, toast, **kw):
         super().__init__(parent, fg_color=COLORS["bg"], corner_radius=0, **kw)
         self.toast = toast
@@ -995,13 +931,13 @@ class StudentsPanel(ctk.CTkFrame):
         title_box.pack(side="left", anchor="w")
         ctk.CTkLabel(
             title_box, text="Quản lý sinh viên",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["bg"],
         ).pack(anchor="w")
         ctk.CTkLabel(
             title_box,
             text="Tìm kiếm, cập nhật thông tin, xem ảnh và lịch sử điểm danh của sinh viên.",
-            font=ctk.CTkFont(family="Segoe UI", size=10),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         ).pack(anchor="w", pady=(2, 0))
         _flat_btn(
@@ -1009,11 +945,10 @@ class StudentsPanel(ctk.CTkFrame):
             command=self.load_data,
             color=COLORS["surface_alt"],
             text_color=COLORS["text_dim"],
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=12),
         ).pack(side="right", pady=4)
         _separator(self).pack(fill="x", padx=CONTENT_PADX, pady=(10, 0))
 
-        # Tìm kiếm
         search_row = ctk.CTkFrame(self, fg_color=COLORS["bg"])
         search_row.pack(fill="x", padx=CONTENT_PADX, pady=(12, 6))
 
@@ -1021,11 +956,11 @@ class StudentsPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             search_row, text="Tìm kiếm",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["bg"],
-        ).pack(side="left", padx=(0, 10))
+        ).pack(side="left", padx=(0, 12))
 
-        self.search_entry = _entry(search_row, textvariable=self.var_search, width=280)
+        self.search_entry = _entry(search_row, textvariable=self.var_search, width=320)
         self.search_entry.pack(side="left")
         self.search_entry.bind("<Return>", lambda e: self.load_data())
 
@@ -1033,59 +968,63 @@ class StudentsPanel(ctk.CTkFrame):
             search_row, "Tìm",
             command=self.load_data,
             color=COLORS["accent"],
-            font=ctk.CTkFont(family="Segoe UI", size=9),
-        ).pack(side="left", padx=(10, 6))
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+        ).pack(side="left", padx=(12, 8))
 
         _flat_btn(
             search_row, "Xóa lọc",
             command=self._clear_search,
             color=COLORS["surface_alt"],
             text_color=COLORS["text_dim"],
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=12),
         ).pack(side="left")
 
-        # Đếm
         self.count_lbl = ctk.CTkLabel(
             self, text="...",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         )
-        self.count_lbl.pack(anchor="w", padx=CONTENT_PADX, pady=(0, 4))
+        self.count_lbl.pack(anchor="w", padx=CONTENT_PADX, pady=(0, 6))
 
-        # Bảng
         cols   = ("student_id", "full_name", "class_name", "gender", "created_at")
         heads  = ("Mã sinh viên", "Họ và tên", "Lớp hành chính", "Giới tính", "Ngày đăng ký")
-        widths = [135, 220, 130, 100, 160]
+        widths = [150, 260, 150, 120, 180]
         aligns = ["center", "w", "center", "center", "center"]
         self.table = StyledTable(
             self, columns=cols, headings=heads,
             col_widths=widths, col_alignments=aligns,
         )
-        self.table.pack(fill="both", expand=True, padx=CONTENT_PADX, pady=(0, 12))
+        self.table.pack(fill="both", expand=True, padx=CONTENT_PADX, pady=(0, 16))
 
-        # Nút thao tác
         btn_row = ctk.CTkFrame(self, fg_color=COLORS["bg"])
-        btn_row.pack(fill="x", padx=CONTENT_PADX, pady=(0, 20))
+        btn_row.pack(fill="x", padx=CONTENT_PADX, pady=(0, 24))
 
         _flat_btn(
-            btn_row, "✏️  Sửa thông tin",
+            btn_row, "✏️ Sửa thông tin",
             command=self._edit_selected,
             color=COLORS["accent"],
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 10))
+
+        _flat_btn(
+            btn_row, "📸  Chụp lại ảnh",
+            command=self._update_face_selected,
+            color=COLORS["warning"],
+            text_color=COLORS["on_accent"],
+        ).pack(side="left", padx=(0, 10))
 
         _flat_btn(
             btn_row, "🖼  Xem ảnh",
             command=self._show_image_selected,
-            color=COLORS["surface_alt"],
-            text_color=COLORS["text_dim"],
-        ).pack(side="left", padx=(0, 8))
+            color=COLORS["accent"],
+            text_color=COLORS["on_accent"],
+        ).pack(side="left", padx=(0, 10))
 
         _flat_btn(
             btn_row, "📜  Lịch sử điểm danh",
             command=self._show_history_selected,
-            color=COLORS["surface_alt"],
-            text_color=COLORS["text_dim"],
-        ).pack(side="left", padx=(0, 8))
+            color=COLORS["success"],
+            text_color=COLORS["on_accent"],
+        ).pack(side="left", padx=(0, 10))
 
         _flat_btn(
             btn_row, "🗑  Xóa",
@@ -1143,7 +1082,7 @@ class StudentsPanel(ctk.CTkFrame):
 
         win = ctk.CTkToplevel(self)
         win.title("Sửa thông tin sinh viên")
-        win.geometry("420x300")
+        win.geometry("460x380")
         win.resizable(False, False)
         win.configure(fg_color=COLORS["bg"])
         win.transient(self.winfo_toplevel())
@@ -1154,12 +1093,12 @@ class StudentsPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             card, text="Sửa thông tin sinh viên",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
-        ).pack(anchor="w", padx=20, pady=(18, 12))
+        ).pack(anchor="w", padx=24, pady=(20, 14))
 
         form = ctk.CTkFrame(card, fg_color=COLORS["surface"])
-        form.pack(fill="x", padx=20)
+        form.pack(fill="x", padx=24)
 
         var_name   = tk.StringVar(value=student.get("full_name", ""))
         var_class  = tk.StringVar(value=student.get("class_name", "") or "")
@@ -1173,35 +1112,36 @@ class StudentsPanel(ctk.CTkFrame):
 
         for label_text, var in rows:
             row = ctk.CTkFrame(form, fg_color=COLORS["surface"])
-            row.pack(fill="x", pady=5)
+            row.pack(fill="x", pady=6)
             ctk.CTkLabel(
                 row, text=label_text,
-                font=ctk.CTkFont(family="Segoe UI", size=9),
+                font=ctk.CTkFont(family="Segoe UI", size=13),
                 text_color=COLORS["text_dim"], fg_color=COLORS["surface"],
-                width=95, anchor="w",
+                width=110, anchor="w",
             ).pack(side="left")
             if var is None:
                 ctk.CTkLabel(
                     row, text=sid,
-                    font=ctk.CTkFont(family="Segoe UI", size=10),
+                    font=ctk.CTkFont(family="Segoe UI", size=14),
                     text_color=COLORS["text"], fg_color=COLORS["surface"],
                     anchor="w",
                 ).pack(side="left")
             else:
-                _entry(row, textvariable=var, width=230).pack(side="left")
+                _entry(row, textvariable=var, width=250).pack(side="left")
 
         gender_row = ctk.CTkFrame(form, fg_color=COLORS["surface"])
-        gender_row.pack(fill="x", pady=5)
+        gender_row.pack(fill="x", pady=6)
         ctk.CTkLabel(
             gender_row, text="Giới tính",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["surface"],
-            width=95, anchor="w",
+            width=110, anchor="w",
         ).pack(side="left")
         ctk.CTkSegmentedButton(
             gender_row,
             values=["Nam", "Nữ"],
             variable=var_gender,
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             fg_color=COLORS["surface_alt"],
             selected_color=COLORS["accent"],
             selected_hover_color=_darken(COLORS["accent"], 24),
@@ -1211,7 +1151,7 @@ class StudentsPanel(ctk.CTkFrame):
         ).pack(side="left")
 
         btn_row = ctk.CTkFrame(card, fg_color=COLORS["surface"])
-        btn_row.pack(fill="x", padx=20, pady=(16, 18))
+        btn_row.pack(fill="x", padx=24, pady=(20, 20))
 
         def _save():
             full_name = var_name.get().strip()
@@ -1233,7 +1173,7 @@ class StudentsPanel(ctk.CTkFrame):
             btn_row, "Lưu thay đổi",
             command=_save,
             color=COLORS["success"],
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 10))
 
         _flat_btn(
             btn_row, "Hủy",
@@ -1241,6 +1181,29 @@ class StudentsPanel(ctk.CTkFrame):
             color=COLORS["surface_alt"],
             text_color=COLORS["text_dim"],
         ).pack(side="left")
+
+    def _update_face_selected(self):
+        vals = self._get_selected_student()
+        if not vals:
+            return
+        sid = vals[0]
+        name = vals[1]
+        confirm = messagebox.askyesno(
+            "Cập nhật khuôn mặt",f"Bật webcam để chụp lại dữ liệu khuôn mặt cho:\n\n  {name} ({sid})?"
+        )
+        if not confirm:
+            return
+
+        self.toast.show("Đang mở camera...", "info")
+        def _run():
+            success, msg = update_face_from_ui(sid)
+            def _update_ui():
+                if success:
+                    self.toast.show(msg, "success")
+                else:
+                    self.toast.show(msg, "error")
+            self.after(0, _update_ui)
+        threading.Thread(target=_run, daemon=True).start()
 
     def _show_image_selected(self):
         vals = self._get_selected_student()
@@ -1257,7 +1220,7 @@ class StudentsPanel(ctk.CTkFrame):
 
         win = ctk.CTkToplevel(self)
         win.title("Ảnh sinh viên")
-        win.geometry("560x500")
+        win.geometry("600x540")
         win.configure(fg_color=COLORS["bg"])
         win.transient(self.winfo_toplevel())
         win.grab_set()
@@ -1267,18 +1230,18 @@ class StudentsPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             card, text=f"{name} ({sid})",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
-        ).pack(anchor="w", padx=20, pady=(18, 12))
+        ).pack(anchor="w", padx=24, pady=(20, 14))
 
         try:
             img = Image.open(image_path)
-            img.thumbnail((500, 360))
+            img.thumbnail((500, 400))
             photo = ImageTk.PhotoImage(img)
 
             img_lbl = tk.Label(card, image=photo, bg=COLORS["surface"])
             img_lbl.image = photo
-            img_lbl.pack(padx=20, pady=(0, 20))
+            img_lbl.pack(padx=24, pady=(0, 24))
         except Exception:
             win.destroy()
             self.toast.show("Không thể mở ảnh sinh viên.", "error")
@@ -1310,35 +1273,35 @@ class StudentsPanel(ctk.CTkFrame):
 
         win = ctk.CTkToplevel(self)
         win.title("Lịch sử điểm danh")
-        win.geometry("760x460")
+        win.geometry("820x500")
         win.configure(fg_color=COLORS["bg"])
         win.transient(self.winfo_toplevel())
         win.grab_set()
 
         header = ctk.CTkFrame(win, fg_color=COLORS["bg"])
-        header.pack(fill="x", padx=20, pady=(18, 8))
+        header.pack(fill="x", padx=24, pady=(20, 10))
 
         ctk.CTkLabel(
             header, text=f"Lịch sử điểm danh - {name} ({sid})",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["bg"],
         ).pack(anchor="w")
 
         ctk.CTkLabel(
             header, text=f"{len(records)} lượt điểm danh",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
-        ).pack(anchor="w", pady=(2, 0))
+        ).pack(anchor="w", pady=(4, 0))
 
         cols   = ("date", "time", "subject", "status", "note")
         heads  = ("Ngày", "Giờ", "Môn / Lớp học phần", "Trạng thái", "Ghi chú")
-        widths = [110, 90, 180, 100, 220]
+        widths = [120, 100, 200, 120, 240]
         aligns = ["center", "center", "w", "center", "w"]
         table = StyledTable(
             win, columns=cols, headings=heads,
             col_widths=widths, col_alignments=aligns,
         )
-        table.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        table.pack(fill="both", expand=True, padx=24, pady=(0, 24))
 
         for r in records:
             table.insert((
@@ -1378,10 +1341,6 @@ class StudentsPanel(ctk.CTkFrame):
 # ──────────────────────────────────────────────
 
 class ReportPanel(ctk.CTkFrame):
-    """
-    Xuất báo cáo điểm danh ra file CSV hoặc Excel.
-    Nối với export_attendance_report() từ modules/report.py.
-    """
     def __init__(self, parent, toast, **kw):
         super().__init__(parent, fg_color=COLORS["bg"], corner_radius=0, **kw)
         self.toast = toast
@@ -1392,18 +1351,17 @@ class ReportPanel(ctk.CTkFrame):
         header.pack(fill="x", padx=CONTENT_PADX, pady=(26, 6))
         ctk.CTkLabel(
             header, text="Xuất báo cáo",
-            font=ctk.CTkFont(family="Segoe UI", size=19, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["bg"],
         ).pack(anchor="w")
         ctk.CTkLabel(
             header,
             text="Xuất dữ liệu điểm danh ra file báo cáo.",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         ).pack(anchor="w", pady=(2, 0))
         _separator(self).pack(fill="x", padx=CONTENT_PADX, pady=(10, 0))
 
-        # Card
         card = _card(self)
         card.pack(fill="x", padx=CONTENT_PADX, pady=18)
         inner = ctk.CTkFrame(card, fg_color=COLORS["surface"])
@@ -1411,15 +1369,15 @@ class ReportPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             inner, text="Tùy chọn xuất báo cáo",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
         ).pack(anchor="w")
         ctk.CTkLabel(
             inner,
             text="Chọn phạm vi dữ liệu và định dạng file cần xuất.",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
-        ).pack(anchor="w", pady=(4, 14))
+        ).pack(anchor="w", pady=(4, 16))
 
         self.var_report_type = tk.StringVar(value="Toàn bộ")
         self.var_file_format = tk.StringVar(value="CSV")
@@ -1427,19 +1385,19 @@ class ReportPanel(ctk.CTkFrame):
         self.var_start_date  = tk.StringVar()
         self.var_end_date    = tk.StringVar()
 
-        # Phạm vi báo cáo
         report_type_row = ctk.CTkFrame(inner, fg_color=COLORS["surface"])
-        report_type_row.pack(fill="x", pady=(0, 10))
+        report_type_row.pack(fill="x", pady=(0, 12))
         ctk.CTkLabel(
             report_type_row, text="Loại báo cáo",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["surface"],
-            width=110, anchor="w",
+            width=130, anchor="w",
         ).pack(side="left")
         self.report_type_segment = ctk.CTkSegmentedButton(
             report_type_row,
             values=["Toàn bộ", "Theo ngày", "Khoảng ngày"],
             variable=self.var_report_type,
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             command=lambda _: self._update_report_inputs(),
             fg_color=COLORS["surface_alt"],
             selected_color=COLORS["accent"],
@@ -1450,19 +1408,19 @@ class ReportPanel(ctk.CTkFrame):
         )
         self.report_type_segment.pack(side="left")
 
-        # Định dạng file
         format_row = ctk.CTkFrame(inner, fg_color=COLORS["surface"])
-        format_row.pack(fill="x", pady=(0, 10))
+        format_row.pack(fill="x", pady=(0, 12))
         ctk.CTkLabel(
             format_row, text="Định dạng",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["surface"],
-            width=110, anchor="w",
+            width=130, anchor="w",
         ).pack(side="left")
         self.format_segment = ctk.CTkSegmentedButton(
             format_row,
             values=["CSV", "Excel"],
             variable=self.var_file_format,
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             fg_color=COLORS["surface_alt"],
             selected_color=COLORS["accent"],
             selected_hover_color=_darken(COLORS["accent"], 24),
@@ -1472,44 +1430,42 @@ class ReportPanel(ctk.CTkFrame):
         )
         self.format_segment.pack(side="left")
 
-        # Ngày đơn
         date_row = ctk.CTkFrame(inner, fg_color=COLORS["surface"])
-        date_row.pack(fill="x", pady=(0, 10))
+        date_row.pack(fill="x", pady=(0, 12))
         ctk.CTkLabel(
             date_row, text="Ngày",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["surface"],
-            width=110, anchor="w",
+            width=130, anchor="w",
         ).pack(side="left")
-        self.date_entry = _entry(date_row, textvariable=self.var_report_date, width=180)
+        self.date_entry = _entry(date_row, textvariable=self.var_report_date, width=200)
         self.date_entry.pack(side="left")
         ctk.CTkLabel(
             date_row, text="YYYY-MM-DD",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
-        ).pack(side="left", padx=(10, 0))
+        ).pack(side="left", padx=(12, 0))
 
-        # Khoảng ngày
         range_row = ctk.CTkFrame(inner, fg_color=COLORS["surface"])
-        range_row.pack(fill="x", pady=(0, 12))
+        range_row.pack(fill="x", pady=(0, 14))
         ctk.CTkLabel(
             range_row, text="Khoảng ngày",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_dim"], fg_color=COLORS["surface"],
-            width=110, anchor="w",
+            width=130, anchor="w",
         ).pack(side="left")
-        self.start_date_entry = _entry(range_row, textvariable=self.var_start_date, width=150)
+        self.start_date_entry = _entry(range_row, textvariable=self.var_start_date, width=160)
         self.start_date_entry.pack(side="left")
         ctk.CTkLabel(
             range_row, text="đến",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
-        ).pack(side="left", padx=8)
-        self.end_date_entry = _entry(range_row, textvariable=self.var_end_date, width=150)
+        ).pack(side="left", padx=10)
+        self.end_date_entry = _entry(range_row, textvariable=self.var_end_date, width=160)
         self.end_date_entry.pack(side="left")
 
         btn_row = ctk.CTkFrame(inner, fg_color=COLORS["surface"])
-        btn_row.pack(anchor="w", pady=(2, 0))
+        btn_row.pack(anchor="w", pady=(4, 0))
         _flat_btn(
             btn_row, "Xuất báo cáo",
             command=self._export_report,
@@ -1518,17 +1474,16 @@ class ReportPanel(ctk.CTkFrame):
 
         self._update_report_inputs()
 
-        # Log
-        _separator(self).pack(fill="x", padx=CONTENT_PADX, pady=(0, 12))
+        _separator(self).pack(fill="x", padx=CONTENT_PADX, pady=(0, 14))
         ctk.CTkLabel(
             self, text="Nhật ký xuất báo cáo:",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=COLORS["text_muted"], fg_color=COLORS["bg"],
         ).pack(anchor="w", padx=CONTENT_PADX)
 
         self.log_text = ctk.CTkTextbox(
             self,
-            font=ctk.CTkFont(family="Consolas", size=9),
+            font=ctk.CTkFont(family="Consolas", size=12),
             fg_color=COLORS["surface"],
             text_color=COLORS["text_dim"],
             border_color=COLORS["border"],
@@ -1537,12 +1492,9 @@ class ReportPanel(ctk.CTkFrame):
             state="disabled",
             wrap="word",
         )
-        self.log_text.pack(fill="both", expand=True, padx=CONTENT_PADX, pady=(4, 22))
+        self.log_text.pack(fill="both", expand=True, padx=CONTENT_PADX, pady=(6, 24))
 
     def _set_entry_state(self, entry, enabled):
-        """
-        Bật/tắt ô nhập ngày và đổi màu để người dùng nhìn rõ ô nào đang khóa.
-        """
         if enabled:
             entry.configure(
                 state="normal",
@@ -1559,17 +1511,12 @@ class ReportPanel(ctk.CTkFrame):
             )
 
     def _update_report_inputs(self):
-        """
-        Bật/tắt ô nhập ngày theo loại báo cáo đang chọn.
-        """
         report_type = self.var_report_type.get()
-
         self._set_entry_state(self.date_entry, report_type == "Theo ngày")
         self._set_entry_state(self.start_date_entry, report_type == "Khoảng ngày")
         self._set_entry_state(self.end_date_entry, report_type == "Khoảng ngày")
 
     def _log(self, msg, color=None):
-        """Thêm dòng vào text log."""
         self.log_text.configure(state="normal")
         self.log_text.insert("end", msg + "\n")
         self.log_text.see("end")
@@ -1635,14 +1582,7 @@ class ReportPanel(ctk.CTkFrame):
 # ──────────────────────────────────────────────
 
 class FaceAttendanceApp(ctk.CTk):
-    """
-    Cửa sổ chính của ứng dụng Face Attendance.
-    Gồm sidebar điều hướng (trái) và vùng nội dung thay đổi (phải).
-    Hỗ trợ chuyển đổi Light/Dark mode qua sidebar.
-    """
-
     def __init__(self):
-        # Mặc định Light Mode
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
         _apply_theme("light")
@@ -1655,9 +1595,7 @@ class FaceAttendanceApp(ctk.CTk):
         self._panels = {}
         self._nav_btns = {}
         self._build_layout()
-        self._show_panel("attendance")   # mặc định mở dashboard tổng quan
-
-    # Cài đặt cửa sổ
+        self._show_panel("attendance")
 
     def _setup_window(self):
         self.title("Face Attendance System")
@@ -1669,10 +1607,7 @@ class FaceAttendanceApp(ctk.CTk):
         except Exception:
             pass
 
-    # Layout chính
-
     def _build_layout(self):
-        # Sidebar
         self.sidebar = ctk.CTkFrame(
             self,
             fg_color=COLORS["surface"],
@@ -1683,7 +1618,6 @@ class FaceAttendanceApp(ctk.CTk):
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
-        # Vùng content
         self.content_area = ctk.CTkFrame(
             self, fg_color=COLORS["bg"], corner_radius=0,
         )
@@ -1693,24 +1627,22 @@ class FaceAttendanceApp(ctk.CTk):
         self._build_panels()
 
     def _build_sidebar(self):
-        # Logo / tên app
         logo_frame = ctk.CTkFrame(self.sidebar, fg_color=COLORS["surface"])
-        logo_frame.pack(fill="x", pady=(22, 8))
+        logo_frame.pack(fill="x", pady=(24, 8))
         ctk.CTkLabel(
             logo_frame, text="Face Attendance System",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
-            anchor="w", justify="left", wraplength=185,
+            anchor="w", justify="left", wraplength=190,
         ).pack(padx=20, anchor="w")
         ctk.CTkLabel(
             logo_frame, text="v1.0",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
         ).pack(padx=20, anchor="w", pady=(2, 0))
 
-        _separator(self.sidebar, bg=COLORS["border"]).pack(fill="x", padx=14, pady=8)
+        _separator(self.sidebar, bg=COLORS["border"]).pack(fill="x", padx=16, pady=10)
 
-        # Mục điều hướng
         nav_items = [
             ("attendance",  "📋", "Tổng quan"),
             ("recognition", "🎥", "Điểm danh"),
@@ -1724,25 +1656,23 @@ class FaceAttendanceApp(ctk.CTk):
                 self.sidebar, icon, label,
                 command=lambda k=key: self._show_panel(k),
             )
-            btn.pack(fill="x", padx=10, pady=2)
+            btn.pack(fill="x", padx=12, pady=3)
             self._nav_btns[key] = btn
 
-        # Spacer
         ctk.CTkFrame(self.sidebar, fg_color=COLORS["surface"]).pack(
             fill="both", expand=True,
         )
 
-        # Nút chuyển Light / Dark
-        _separator(self.sidebar, bg=COLORS["border"]).pack(fill="x", padx=14, pady=(8, 10))
+        _separator(self.sidebar, bg=COLORS["border"]).pack(fill="x", padx=16, pady=(10, 12))
 
         theme_row = ctk.CTkFrame(self.sidebar, fg_color=COLORS["surface"])
-        theme_row.pack(anchor="center", pady=(0, 10))
+        theme_row.pack(anchor="center", pady=(0, 12))
         theme_row.grid_columnconfigure(0, minsize=32)
         theme_row.grid_columnconfigure(2, minsize=32)
 
         ctk.CTkLabel(
             theme_row, text="☀️",
-            font=ctk.CTkFont(family="Segoe UI Emoji", size=11),
+            font=ctk.CTkFont(family="Segoe UI Emoji", size=14),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
             width=32, anchor="center",
         ).grid(row=0, column=0, padx=(0, 8))
@@ -1753,8 +1683,8 @@ class FaceAttendanceApp(ctk.CTk):
             command=self._toggle_theme,
             onvalue="dark",
             offvalue="light",
-            width=44,
-            height=22,
+            width=48,
+            height=24,
             progress_color=COLORS["accent"],
             button_color="#FFFFFF",
             button_hover_color=COLORS["surface_alt"],
@@ -1764,7 +1694,7 @@ class FaceAttendanceApp(ctk.CTk):
 
         ctk.CTkLabel(
             theme_row, text="🌙",
-            font=ctk.CTkFont(family="Segoe UI Emoji", size=11),
+            font=ctk.CTkFont(family="Segoe UI Emoji", size=14),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
             width=32, anchor="center",
         ).grid(row=0, column=2, padx=(8, 0))
@@ -1774,26 +1704,24 @@ class FaceAttendanceApp(ctk.CTk):
         else:
             self.theme_switch.deselect()
 
-        # Footer sidebar
-        _separator(self.sidebar, bg=COLORS["border"]).pack(fill="x", padx=14, pady=(0, 0))
+        _separator(self.sidebar, bg=COLORS["border"]).pack(fill="x", padx=16, pady=(0, 0))
         footer_frame = ctk.CTkFrame(
             self.sidebar,
             fg_color=COLORS["surface"],
-            height=64,
+            height=68,
         )
-        footer_frame.pack(fill="x", padx=14, pady=(0, 12))
+        footer_frame.pack(fill="x", padx=16, pady=(0, 14))
         footer_frame.pack_propagate(False)
 
         footer_inner = ctk.CTkFrame(footer_frame, fg_color=COLORS["surface"])
         footer_inner.pack(expand=True)
         ctk.CTkLabel(
             footer_inner, text="Python · OpenCV · SQLite",
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=COLORS["text_muted"], fg_color=COLORS["surface"],
         ).pack(anchor="center")
 
     def _build_panels(self):
-        """Khởi tạo tất cả panel một lần, dùng pack/pack_forget để toggle."""
         panels = {
             "attendance":  AttendancePanel(self.content_area,  self.toast),
             "recognition": RecognitionPanel(self.content_area, self.toast),
@@ -1805,7 +1733,6 @@ class FaceAttendanceApp(ctk.CTk):
             self._panels[key] = panel
 
     def _show_panel(self, key):
-        """Ẩn tất cả panel, hiện panel theo key, cập nhật sidebar active."""
         for k, panel in self._panels.items():
             panel.pack_forget()
         for k, btn in self._nav_btns.items():
@@ -1814,19 +1741,14 @@ class FaceAttendanceApp(ctk.CTk):
         panel = self._panels[key]
         panel.pack(fill="both", expand=True)
 
-        # Tải lại dữ liệu nếu panel có hàm load_data
         if hasattr(panel, "load_data"):
             panel.load_data()
 
-    # Chuyển đổi theme
-
     def _toggle_theme(self):
-        """Chuyển đổi giữa Light và Dark mode, cập nhật toàn bộ UI."""
         new_mode = "dark" if self._current_mode == "light" else "light"
         _apply_theme(new_mode)
         self._current_mode = new_mode
 
-        # Lưu panel hiện tại trước khi rebuild UI
         self._active_panel_key = next(
             (k for k, btn in self._nav_btns.items() if btn._active),
             "attendance",
@@ -1839,26 +1761,18 @@ class FaceAttendanceApp(ctk.CTk):
         self._rebuild_all()
 
     def _rebuild_all(self):
-        """
-        Rebuild sidebar và tất cả panel sau khi đổi theme.
-        Giữ nguyên trạng thái active panel hiện tại.
-        """
-        # Lấy panel đã lưu trước khi rebuild
         active_key = getattr(self, "_active_panel_key", "attendance")
 
-        # Xóa và build lại sidebar (ngoại trừ area content)
         for child in self.sidebar.winfo_children():
             child.destroy()
         self._nav_btns.clear()
         self._build_sidebar()
 
-        # Xóa và build lại tất cả panels
         for child in self.content_area.winfo_children():
             child.destroy()
         self._panels.clear()
         self._build_panels()
 
-        # Khôi phục panel active
         self._show_panel(active_key)
 
 # ──────────────────────────────────────────────
@@ -1866,10 +1780,6 @@ class FaceAttendanceApp(ctk.CTk):
 # ──────────────────────────────────────────────
 
 def run_app():
-    """
-    Khởi động ứng dụng Face Attendance.
-    Gọi từ main.py hoặc chạy trực tiếp file này.
-    """
     app = FaceAttendanceApp()
     app.mainloop()
 
