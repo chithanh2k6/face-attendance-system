@@ -78,7 +78,7 @@ CARD_RADIUS    = 12
 BTN_RADIUS     = 8
 ENTRY_RADIUS   = 8
 
-# Đã nâng size chuẩn cho phù hợp mắt
+
 FONT_HEADING  = ("Segoe UI", 24, "bold")
 FONT_SUBHEAD  = ("Segoe UI", 16, "bold")
 FONT_BODY     = ("Segoe UI", 14)
@@ -213,7 +213,7 @@ class NavButton(ctk.CTkFrame):
             font=ctk.CTkFont(family="Segoe UI Emoji", size=18),
             text_color=COLORS["text_dim"],
             fg_color=self._bg_normal,
-            width=32,
+            width=28,
             anchor="center",
         )
         self.text_lbl = ctk.CTkLabel(
@@ -224,8 +224,8 @@ class NavButton(ctk.CTkFrame):
             fg_color=self._bg_normal,
             anchor="w",
         )
-        self.icon_lbl.pack(side="left", padx=(14, 6), pady=12)
-        self.text_lbl.pack(side="left", padx=(0, 14), pady=12, fill="x", expand=True)
+        self.icon_lbl.pack(side="left", padx=(14, 6), pady=11)
+        self.text_lbl.pack(side="left", padx=(0, 14), pady=11, fill="x", expand=True)
 
         for w in (self, self.icon_lbl, self.text_lbl):
             w.bind("<Button-1>", lambda e: self.command())
