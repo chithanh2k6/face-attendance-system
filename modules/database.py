@@ -16,7 +16,6 @@ def initialize_directories():
     for d in [DATA_DIR, FACES_DIR, ENCODINGS_DIR, REPORTS_DIR]:
         os.makedirs(d, exist_ok=True)
 
-
 def connect_db(db_path=DB_PATH):
     """
     tự động tạo file DB nếu chưa tồn tại.
@@ -34,7 +33,6 @@ def create_tables(db_path=DB_PATH):
     Gọi hàm này 1 lần khi khởi động app
     """
     initialize_directories()
-
     conn   = connect_db(db_path)
     cursor = conn.cursor()
 
@@ -71,7 +69,6 @@ def create_tables(db_path=DB_PATH):
     conn.close()
     print("[DB] Khởi tạo thư mục và tạo bảng thành công.")
 
-
 # ──────────────────────────────────────────────
 # CRUD cho bảng students
 # ──────────────────────────────────────────────
@@ -80,7 +77,6 @@ def check_student_status(student_id, db_path=DB_PATH):
     """
     Hàm chuyên biệt kiểm tra trạng thái sinh viên trong DB.
     Trả về một tuple độc lập: (exists: bool, is_active: bool)
-    Giúp bóc tách logic kiểm tra ra khỏi luồng xử lý String phức tạp.
     """
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -89,14 +85,12 @@ def check_student_status(student_id, db_path=DB_PATH):
     conn.close()
 
     if row is None:
-        return False, False  # Không tồn tại
+        return False, False  
     return True, row["is_active"] == 1
-
 
 def add_student(student_id, full_name, class_name="", gender="", image_path="", db_path=DB_PATH):
     """
     Thêm sinh viên mới tinh vào DB.
-    Hàm tuân thủ nguyên tắc nhất quán dữ liệu, trả về kiểu Boolean thuần túy.
     Trả về: True nếu thêm mới thành công, False nếu trùng khóa UNIQUE.
     """
     try:
@@ -119,7 +113,7 @@ def add_student(student_id, full_name, class_name="", gender="", image_path="", 
 
 def reactivate_student_db(student_id, full_name, class_name="", gender="", db_path=DB_PATH):
     """
-    Hàm ép buộc khôi phục sinh viên bị xóa mềm và cập nhật thông tin mới.
+    Hàm ép buộc khôi phục sinh viên bị xóa và cập nhật thông tin mới.
     Được gọi sau khi người dùng bấm đồng ý khôi phục trên giao diện.
     """
     conn = connect_db(db_path)
@@ -138,7 +132,6 @@ def update_student(student_id, full_name, class_name="", gender="", db_path=DB_P
     """
     Cập nhật thông tin sinh viên (Họ tên, Lớp, Giới tính).
     Chỉ cho phép cập nhật khi sinh viên đang tồn tại và hoạt động (is_active = 1).
-    Trả về: True nếu cập nhật thành công, False nếu lỗi hoặc không tìm thấy.
     """
     exists, is_active = check_student_status(student_id, db_path)
 
@@ -162,7 +155,6 @@ def update_student(student_id, full_name, class_name="", gender="", db_path=DB_P
     print(f"[DB] Đã cập nhật thông tin thành công cho MSSV: {student_id}")
     return True
 
-
 def get_student(student_id, include_deleted=False, db_path=DB_PATH):
     """
     Lấy thông tin 1 sinh viên theo MSSV.
@@ -184,7 +176,7 @@ def get_student(student_id, include_deleted=False, db_path=DB_PATH):
 
 def get_all_students(db_path=DB_PATH):
     """
-    Lấy danh sách tất cả sinh viên đang hoạt động
+    lấy danh sách tất cả sinh viên đang hoạt động
     """
     conn   = connect_db(db_path)
     cursor = conn.cursor()
@@ -288,9 +280,8 @@ def add_attendance(student_id, date, time, status="present", subject="", note=""
 
 def has_attended_today(student_id, date, subject="", db_path=DB_PATH):
     """
-    Kiểm tra sv đã điểm danh trong ngày này chưa
-    Dùng để tránh ghi trùng trong attendance.py.
-    Trả về: True nếu đã điểm danh, False nếu chưa.
+    kiểm tra sv đã điểm danh trong ngày này chưa
+    dùng để tránh ghi trùng trong attendance.py.
     """
     conn   = connect_db(db_path)
     cursor = conn.cursor()
