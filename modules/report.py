@@ -29,7 +29,7 @@ CSV_HEADERS = [
     "Ngày",
     "Giờ",
     "Trạng thái",
-    "Môn học",
+    "Nội dung điểm danh",
     "Ghi chú",
 ]
 

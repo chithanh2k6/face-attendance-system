@@ -4,7 +4,6 @@ from modules.database import (
     create_tables,
     get_student,
     add_attendance,
-    has_attended_today,
     get_attendance_by_date,
     get_attendance_by_student,
 )
@@ -38,12 +37,16 @@ def mark_attendance(student_id, subject="", note=""):
     Luồng xử lý:
         1. Kiểm tra MSSV hợp lệ.
         2. Kiểm tra sinh viên có tồn tại và đang hoạt động không.
-        3. Kiểm tra sinh viên đã điểm danh trong ngày/môn đó chưa.
-        4. Nếu chưa, ghi record vào bảng attendance.
+        3. Ghi một lượt điểm danh mới vào bảng attendance.
+
+    Ghi chú:
+        - Một sinh viên có thể có nhiều lượt điểm danh trong cùng một ngày.
+        - Nội dung điểm danh dùng để phân loại lượt điểm danh theo môn học,
+          lớp học phần, ca học hoặc buổi học cụ thể.
 
     Trả về:
         (True, message)  nếu điểm danh thành công.
-        (False, message) nếu thất bại hoặc đã điểm danh.
+        (False, message) nếu thất bại.
     """
     create_tables()
 
@@ -61,14 +64,11 @@ def mark_attendance(student_id, subject="", note=""):
 
     current_date, current_time = get_current_date_time()
 
-    if has_attended_today(student_id, current_date, subject):
-        return False, f"{student['full_name']} đã điểm danh cho nội dung này hôm nay."
-
     success = add_attendance(
         student_id=student_id,
         date=current_date,
         time=current_time,
-        status="present",
+        status="Có mặt",
         subject=subject,
         note=note,
     )
@@ -76,7 +76,7 @@ def mark_attendance(student_id, subject="", note=""):
     if success:
         return True, f"Đã điểm danh: {student['full_name']} ({student_id}) lúc {current_time}"
 
-    return False, "Không thể ghi điểm danh. Có thể dữ liệu đã bị trùng."
+    return False, "Không thể ghi điểm danh."
 
 
 # ──────────────────────────────────────────────
@@ -120,7 +120,7 @@ def print_today_attendance():
         return
 
     print("\n=== DANH SÁCH ĐIỂM DANH HÔM NAY ===")
-    print(f"{'MSSV':<15} {'Họ tên':<25} {'Lớp':<15} {'Ngày':<12} {'Giờ':<10}")
+    print(f"{'MSSV':<15} {'Họ tên':<25} {'Lớp':<15} {'Ngày':<12} {'Giờ':<10} {'Nội dung'}")
 
     for row in records:
         print(
@@ -128,7 +128,8 @@ def print_today_attendance():
             f"{row['full_name']:<25} "
             f"{row['class_name'] or '':<15} "
             f"{row['date']:<12} "
-            f"{row['time']:<10}"
+            f"{row['time']:<10} "
+            f"{row['subject'] or ''}"
         )
 
 
@@ -143,14 +144,14 @@ def print_student_attendance_history(student_id):
         return
 
     print(f"\n=== LỊCH SỬ ĐIỂM DANH: {student_id} ===")
-    print(f"{'Ngày':<12} {'Giờ':<10} {'Trạng thái':<12} {'Môn':<15} {'Ghi chú'}")
+    print(f"{'Ngày':<12} {'Giờ':<10} {'Trạng thái':<12} {'Nội dung':<25} {'Ghi chú'}")
 
     for row in records:
         print(
             f"{row['date']:<12} "
             f"{row['time']:<10} "
             f"{row['status']:<12} "
-            f"{row['subject'] or '':<15} "
+            f"{row['subject'] or '':<25} "
             f"{row['note'] or ''}"
         )
 
@@ -178,7 +179,7 @@ def attendance_cli():
 
         if choice == "1":
             student_id = input("Nhập MSSV: ").strip()
-            subject = input("Nhập môn học/lớp học phần (có thể bỏ trống): ").strip()
+            subject = input("Nhập nội dung điểm danh (có thể bỏ trống): ").strip()
 
             success, message = mark_attendance(student_id, subject)
             print(message)

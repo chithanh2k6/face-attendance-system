@@ -738,6 +738,8 @@ class AttendancePanel(ctk.CTkFrame):
         content = ctk.CTkFrame(self, fg_color=COLORS["bg"], corner_radius=0)
         content.pack(fill="both", expand=True)
 
+        self.dashboard_table_rows = 7
+
         card_row = ctk.CTkFrame(content, fg_color=COLORS["bg"])
         card_row.pack(fill="x", padx=CONTENT_PADX, pady=(10, 8))
 
@@ -760,7 +762,7 @@ class AttendancePanel(ctk.CTkFrame):
         aligns = ["center", "center", "center", "w", "center", "w"]
         self.recent_table = StyledTable(
             recent_card, columns=cols, headings=heads,
-            col_widths=widths, col_alignments=aligns, rows=10,
+            col_widths=widths, col_alignments=aligns, rows=self.dashboard_table_rows,
         )
         self.recent_table.pack(fill="x", padx=14, pady=(0, 14))
 
@@ -783,7 +785,7 @@ class AttendancePanel(ctk.CTkFrame):
         aligns = ["w", "center", "center", "center"]
         self.class_table = StyledTable(
             class_card, columns=cols, headings=heads,
-            col_widths=widths, col_alignments=aligns, rows=10,
+            col_widths=widths, col_alignments=aligns, rows=self.dashboard_table_rows,
         )
         self.class_table.pack(fill="x", padx=14, pady=(0, 14))
 
@@ -801,7 +803,7 @@ class AttendancePanel(ctk.CTkFrame):
         aligns = ["w", "center", "center", "center"]
         self.subject_table = StyledTable(
             subject_card, columns=cols, headings=heads,
-            col_widths=widths, col_alignments=aligns, rows=10,
+            col_widths=widths, col_alignments=aligns, rows=self.dashboard_table_rows,
         )
         self.subject_table.pack(fill="x", padx=14, pady=(0, 14))
 
@@ -851,7 +853,7 @@ class AttendancePanel(ctk.CTkFrame):
         self.stat_labels["total_attendance"].configure(text=str(total_attendance))
 
         self.recent_table.clear()
-        for r in get_recent_attendance(limit=10):
+        for r in get_recent_attendance(limit=self.dashboard_table_rows):
             self.recent_table.insert((
                 r.get("date", ""),
                 r.get("time", ""),
@@ -1231,7 +1233,7 @@ class StudentsPanel(ctk.CTkFrame):
             card, text=f"{name} ({sid})",
             font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=COLORS["text"], fg_color=COLORS["surface"],
-        ).pack(anchor="w", padx=24, pady=(20, 14))
+        ).pack(anchor="center", padx=24, pady=(20, 14))
 
         try:
             img = Image.open(image_path)

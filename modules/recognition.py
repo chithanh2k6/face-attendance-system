@@ -301,7 +301,7 @@ def recognition_cli():
         choice = input("Chọn chức năng: ").strip()
 
         if choice == "1":
-            subject = input("Nhập môn học/lớp học phần (có thể bỏ trống): ").strip()
+            subject = input("Nhập nội dung điểm danh (có thể bỏ trống): ").strip()
             run_face_attendance(subject)
 
         elif choice == "0":
