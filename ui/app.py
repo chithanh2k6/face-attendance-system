@@ -661,7 +661,6 @@ class RecognitionPanel(ctk.CTkFrame):
             note_frame,
             text=(
                 "Lưu ý: Webcam sẽ nhận diện khuôn mặt liên tục.\n"
-                "Trong cùng một ngày, mỗi sinh viên chỉ được ghi một lần cho cùng nội dung điểm danh.\n"
                 "Nhấn Q trong cửa sổ webcam để kết thúc."
             ),
             font=ctk.CTkFont(family="Segoe UI", size=13),
