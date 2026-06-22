@@ -211,7 +211,7 @@ def run_face_attendance(subject=""):
         print("[Recognition] Chưa có dữ liệu khuôn mặt. Vui lòng đăng ký sinh viên trước.")
         return False
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
 
     if not cap.isOpened():
         print("[Recognition] Không mở được webcam. Kiểm tra camera.")
