@@ -142,7 +142,7 @@ def capture_face(student_id, num_photos=NUM_PHOTOS):
     student_face_dir = os.path.join(FACES_DIR, student_id)
     os.makedirs(student_face_dir, exist_ok=True)
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
     if not cap.isOpened():
         print("[!] Không mở được webcam. Kiểm tra kết nối camera.")
         return []
@@ -318,6 +318,19 @@ def register_student_from_ui(student_id, full_name, class_name, gender, force_re
     update_student_image(student_id, image_paths[0])
     return "SUCCESS", f"Đăng ký thành công sinh viên: {full_name} ({student_id})"
 
+
+def update_face_from_ui(student_id):
+    """
+    Luồng chụp lại ảnh và cập nhật encoding cho sinh viên đã tồn tại.
+    """
+    # chụp lại ảnh đè lên thư mục cũ
+    image_paths = capture_face(student_id)
+    if not image_paths or len(image_paths) < NUM_PHOTOS:
+        return False, "Chưa chụp đủ ảnh hoặc đã huỷ camera."
+    if not encode_and_save(student_id, image_paths):
+        return False, "Không trích xuất được khuôn mặt mới. Vui lòng thử lại."
+    update_student_image(student_id, image_paths[0])
+    return True, "Cập nhật khuôn mặt thành công!"
 
 # ──────────────────────────────────────────────
 # Test khi chạy trực tiếp
