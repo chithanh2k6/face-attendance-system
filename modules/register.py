@@ -18,6 +18,9 @@ from modules.database import (
     ENCODINGS_DIR,
 )
 
+from PIL import Image, ImageDraw, ImageFont
+
+
 # ──────────────────────────────────────────────
 # Cấu hình
 # ──────────────────────────────────────────────
@@ -25,6 +28,19 @@ from modules.database import (
 ENCODINGS_FILE = os.path.join(ENCODINGS_DIR, "encodings.pkl")
 NUM_PHOTOS     = 3  # Số ảnh chụp mỗi sinh viên
 
+
+def draw_vietnamese_text(frame, text, position, font_size=22, color=(0, 255, 0)):
+    font_path = r"C:\Windows\Fonts\segoeui.ttf"
+    try:
+        font = ImageFont.truetype(font_path, font_size)
+    except IOError:
+        font = ImageFont.load_default()
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(frame_rgb)
+    draw = ImageDraw.Draw(pil_img)
+    rgb_color = (color[2], color[1], color[0])
+    draw.text(position, text, font=font, fill=rgb_color)
+    return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
 # ──────────────────────────────────────────────
 # Quản lý file encodings.pkl
@@ -175,12 +191,11 @@ def capture_face(student_id, num_photos=NUM_PHOTOS):
         display = frame.copy()
 
         if face_count == 1:
-            cv2.putText(display, f"SAN SANG ({len(saved_paths)}/{num_photos})", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+            display=draw_vietnamese_text(display, f"SẴN SÀNG ({len(saved_paths)}/{num_photos})", (10, 10), 28, (0, 255, 0))
         else:
-            cv2.putText(display, "KHONG THAY MAT", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+            display=draw_vietnamese_text(display, "KHÔNG THẤY MẶT", (10, 10), 28, (0, 0, 255))
 
-        cv2.putText(display, "Phim SPACE: Chup | Phim Q: Huy", (10, 460), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-
+        display=draw_vietnamese_text(display, "Nhấn SPACE để chụp | Nhấn Q để hủy", (10, 440), 18, (220, 220, 220))
         cv2.imshow(window_name, display)
         key = cv2.waitKey(1) & 0xFF
 
